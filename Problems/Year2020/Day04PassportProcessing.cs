@@ -1,7 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
 
 namespace AdventOfCode.Problems.Year2020
 {

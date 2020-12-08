@@ -1,9 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AdventOfCode.Problems.Year2015
 {
@@ -11,19 +7,17 @@ namespace AdventOfCode.Problems.Year2015
     {
         public Day11CorporatePolicy(ILogger logger) : base(logger, "Corporate Policy", 2015, 11) { }
 
-        protected override string ExecutePart1()
+        protected override string ExecutePart1() => GetNextValidPassword(initialPassword);
+
+        protected override string ExecutePart2() => GetNextValidPassword(ExecutePart1());
+
+        private static string GetNextValidPassword(string password)
         {
-            string password = initialPassword;
             do
             {
                 password = IncrementPassword(password);
             } while (!IsValid(password));
             return password;
-        }
-
-        protected override string ExecutePart2()
-        {
-            throw new NotImplementedException();
         }
 
         private static string IncrementPassword(string password)
@@ -56,17 +50,46 @@ namespace AdventOfCode.Problems.Year2015
 
         private static bool HasStraight(string password)
         {
-            throw new NotImplementedException();
+            for (int i = 0; i < password.Length - 2; i++)
+            {
+                if (password[i] == password[i+1] - 1 && password[i] == password[i+2] - 2)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static bool HasValidChars(string password)
         {
-            throw new NotImplementedException();
+            foreach (char invalid in invalidChars)
+            {
+                if (password.Contains(invalid))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private static bool HasTwoPairs(string password)
         {
-            throw new NotImplementedException();
+            int pairsFound = 0;
+
+            for (int i = 0; i < password.Length - 1; i++)
+            {
+                if (password[i] == password[i+1])
+                {
+                    pairsFound++;
+                    i++;
+                }
+                if (pairsFound >= 2)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static readonly List<char> invalidChars = new List<char>() { 'i', 'o', 'l' };

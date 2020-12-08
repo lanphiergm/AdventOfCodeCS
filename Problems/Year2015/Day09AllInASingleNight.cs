@@ -7,51 +7,33 @@ namespace AdventOfCode.Problems.Year2015
 {
     class Day09AllInASingleNight : ProblemBase<int>
     {
+        private List<int> totalDistances = null;
         public Day09AllInASingleNight(ILogger logger) : base(logger, "All in a Single Night", 2015, 9) { }
 
         protected override int ExecutePart1()
         {
-            var orders = new List<List<string>>();
-            BuildPermutations(orders, 0, cityNames.Count - 1);
-            var totalDistances = ComputeDistances(orders);
+            Initialize();
             return totalDistances.Min();
         }
 
         protected override int ExecutePart2()
         {
-            var orders = new List<List<string>>();
-            BuildPermutations(orders, 0, cityNames.Count - 1);
-            var totalDistances = ComputeDistances(orders);
+            Initialize();
             return totalDistances.Max();
         }
 
-        private static void BuildPermutations(List<List<string>> orders, int k, int m)
-        {
-            if (k == m)
+        private void Initialize()
+        { 
+            if (totalDistances == null)
             {
-                orders.Add(new List<string>(cityNames));
-            }
-            else
-            {
-                for (int i = k; i <= m; i++)
-                {
-                    Swap(k, i);
-                    BuildPermutations(orders, k + 1, m);
-                    Swap(k, i);
-                }
+                totalDistances = ComputeDistances();
             }
         }
 
-        private static void Swap(int a, int b)
-        {
-            string tmp = cityNames[a];
-            cityNames[a] = cityNames[b];
-            cityNames[b] = tmp;
-        }
-
-        private static List<int> ComputeDistances(List<List<string>> orders)
+        private static List<int> ComputeDistances()
         {
             var distanceMatrix = ParseDistances();
+            var orders = BuildPermutations(cityNames);
             var totalDistances = new List<int>();
             foreach (var order in orders)
             {

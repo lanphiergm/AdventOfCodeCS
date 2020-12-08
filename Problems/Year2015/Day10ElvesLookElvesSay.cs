@@ -13,6 +13,9 @@ namespace AdventOfCode.Problems.Year2015
             return LookAndSay(INITIALDATA, 40).Length;
         }
 
+        /// <summary>
+        /// Beware: This took over TWO HOURS to run. Probably need to find a more efficient solution
+        /// </summary>
         protected override int ExecutePart2()
         {
             return LookAndSay(INITIALDATA, 50).Length;
