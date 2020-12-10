@@ -63,7 +63,7 @@ namespace AdventOfCode.Problems.Year2020
             long sum = 0;
             for (int i = 0; i < 3; i++)
             {
-                if (sorted[i] < 3)
+                if (sorted[i] <= 3)
                 {
                     sum += possibilities[i];
                 }
