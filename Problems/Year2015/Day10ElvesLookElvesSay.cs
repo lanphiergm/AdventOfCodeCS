@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace AdventOfCode.Problems.Year2015
 {
@@ -13,9 +14,6 @@ namespace AdventOfCode.Problems.Year2015
             return LookAndSay(INITIALDATA, 40).Length;
         }
 
-        /// <summary>
-        /// Beware: This took over TWO HOURS to run. Probably need to find a more efficient solution
-        /// </summary>
         protected override int ExecutePart2()
         {
             return LookAndSay(INITIALDATA, 50).Length;
@@ -27,7 +25,7 @@ namespace AdventOfCode.Problems.Year2015
             {
                 return initial;
             }
-            string newString = string.Empty;
+            var builder = new StringBuilder();
             for (int i = 0; i < initial.Length; i++)
             {
                 char curr = initial[i];
@@ -44,9 +42,10 @@ namespace AdventOfCode.Problems.Year2015
                         break;
                     }
                 }
-                newString += count.ToString() + curr;
+                builder.Append(count);
+                builder.Append(curr);
             }
-            return LookAndSay(newString, iterations - 1);
+            return LookAndSay(builder.ToString(), iterations - 1);
         }
     }
 }

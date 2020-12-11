@@ -10,22 +10,22 @@ namespace AdventOfCode.Problems.Year2015
 
         protected override int ExecutePart1()
         {
-            return FindHash(5);
+            return FindHash(string.Empty.PadLeft(5, '0'));
         }
 
         protected override int ExecutePart2()
         {
-            return FindHash(6);
+            return FindHash(string.Empty.PadLeft(6, '0'));
         }
 
-        private static int FindHash(int numZeros)
+        private static int FindHash(string prefix)
         {
             int answer = 0;
 
             for (int i = 0; i < int.MaxValue; i++)
             {
                 string md5 = CreateMD5(secretKey + i.ToString());
-                if (md5.StartsWith(string.Empty.PadLeft(numZeros, '0')))
+                if (md5.StartsWith(prefix))
                 {
                     answer = i;
                     break;
@@ -38,7 +38,6 @@ namespace AdventOfCode.Problems.Year2015
         private static string CreateMD5(string input)
         {
             // Use input string to calculate MD5 hash
-            using System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create();
             byte[] inputBytes = Encoding.ASCII.GetBytes(input);
             byte[] hashBytes = md5.ComputeHash(inputBytes);
 
@@ -51,6 +50,7 @@ namespace AdventOfCode.Problems.Year2015
             return sb.ToString();
         }
 
+        private static readonly System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create();
         private const string secretKey = "yzbqklnj";
     }
 }
