@@ -1,29 +1,35 @@
-﻿using System;
-using System.Reflection;
+﻿using CommandLine;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace AdventOfCode
 {
+    /// <summary>
+    /// The application class
+    /// </summary>
     class Program
     {
         private static IServiceProvider ServiceProvider { get; set; }
 
+        /// <summary>
+        /// The application entry point
+        /// </summary>
+        /// <param name="args">The command line arguments</param>
+        /// <returns>The status code</returns>
         static int Main(string[] args)
         {
-            if (args == null || args.Length != 3 || 
-                !int.TryParse(args[0], out int year) ||
-                !int.TryParse(args[1], out int day) ||
-                !int.TryParse(args[2], out int part) || (part != 1 && part != 2))
-            {
-                PrintUsage();
-                return -1;
-            }
-
-            RegisterServices();
-            bool result = ServiceProvider.GetRequiredService<ProblemRunner>().Run(year, day, part);
-            DisposeServices();
-            return result ? 0 : 1;
+            int returnCode = -1;
+            Parser.Default.ParseArguments<CommandLineOptions>(args)
+                   .WithParsed(o =>
+                   {
+                       RegisterServices();
+                       bool result = ServiceProvider.GetRequiredService<ProblemRunner>().Run(
+                           o.Year, o.Day, o.Part);
+                       DisposeServices();
+                       returnCode = result ? 0 : 1;
+                   });
+            return returnCode;
         }
 
         private static void RegisterServices()
@@ -31,9 +37,14 @@ namespace AdventOfCode
             var services = new ServiceCollection();
             services.AddLogging(configure =>
             {
-                configure.AddConsole();
+                configure.AddSimpleConsole(options =>
+                {
+                    options.SingleLine = true;
+                    options.TimestampFormat = "hh:mm:ss ";
+                });
                 configure.AddDebug();
             });
+            
             services.AddSingleton<ProblemFactory>();
             services.AddSingleton<ProblemRunner>();
             ServiceProvider = services.BuildServiceProvider(true);
@@ -51,14 +62,16 @@ namespace AdventOfCode
             }
         }
 
-        private static void PrintUsage()
+        private class CommandLineOptions
         {
-            Console.WriteLine("Advent of Code 2020");
-            Console.WriteLine("Usage:");
-            Console.WriteLine("{0} year day part", Assembly.GetExecutingAssembly().GetName().Name);
-            Console.WriteLine("    year:     The year of the problem to execute");
-            Console.WriteLine("    day:      The day of the problem to execute");
-            Console.WriteLine("    part:     The part number of the problem to execute (1 or 2)");
+            [Option('y', "year", Required = false, HelpText = "The year of the problems to execute. All years if omitted")]
+            public int? Year { get; set; }
+
+            [Option('d', "day", Required = false, HelpText = "The day of the problems to execute. All days if omitted")]
+            public int? Day { get; set; }
+
+            [Option('p', "part", Required = false, HelpText = "The part numbers to execute (1 or 2). All parts if omitted")]
+            public int? Part { get; set; }
         }
     }
 }
