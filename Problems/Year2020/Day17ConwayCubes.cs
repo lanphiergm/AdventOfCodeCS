@@ -1,9 +1,8 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿//#define PRINT
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace AdventOfCode.Problems.Year2020
 {
@@ -119,7 +118,7 @@ namespace AdventOfCode.Problems.Year2020
         private int GetNeighborActiveCount(int x, int y, int z, int w)
         {
             int activeCount = 0;
-            for (int h = w - 1; h <= w; h++)
+            for (int h = w - 1; h <= w + 1; h++)
             {
                 for (int i = z - 1; i <= z + 1; i++)
                 {
@@ -179,6 +178,7 @@ namespace AdventOfCode.Problems.Year2020
 
         private void PrintGrid()
         {
+#if PRINT
             int startW = grid.Keys.Min();
             int endW = grid.Keys.Max();
             int startZ = grid[0].Keys.Min();
@@ -204,16 +204,10 @@ namespace AdventOfCode.Problems.Year2020
                     }
                 }
             }
+#endif
         }
 
         private static readonly string[] initialState =
-        {
-            ".#.",
-            "..#",
-            "###",
-        };
-
-        private static readonly string[] realinitialState =
         {
             ".##.####",
             ".#.....#",
