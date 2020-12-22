@@ -1,10 +1,8 @@
-﻿#define USESAMPLE
+﻿//#define USESAMPLE
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace AdventOfCode.Problems.Year2020
 {
@@ -12,20 +10,126 @@ namespace AdventOfCode.Problems.Year2020
     {
         public Day21AllergenAssessment(ILogger logger) : base(logger, "Allergen Assessment", 2020, 21) { }
 
+        private readonly List<Food> foods = new List<Food>();
+        private readonly HashSet<string> allergens = new HashSet<string>();
+
         protected override int ExecutePart1()
         {
-            throw new NotImplementedException();
+            Initialize();
+            while (allergens.Any())
+            {
+                var allergensCopy = new HashSet<string>(allergens);
+                foreach (string allergen in allergensCopy)
+                {
+                    var foodsWithAllergen = foods.Where(f => f.Allergens.Contains(allergen));
+                    IEnumerable<string> intersection = null;
+                    foreach (var food in foodsWithAllergen)
+                    {
+                        if (intersection == null)
+                        {
+                            intersection = food.Ingredients;
+                        }
+                        else
+                        {
+                            intersection = intersection.Intersect(food.Ingredients);
+                        }
+                    }
+                    if (intersection.Count() == 1)
+                    {
+                        allergens.Remove(allergen);
+                        string ingredient = intersection.First();
+                        foreach (var food in foods)
+                        {
+                            food.Allergens.Remove(allergen);
+                            food.Ingredients.Remove(ingredient);
+                        }
+                    }
+                }
+            }
+
+            int ingredientOccurrences = 0;
+            foreach (var food in foods)
+            {
+                ingredientOccurrences += food.Ingredients.Count;
+            }
+            return ingredientOccurrences;
         }
 
         protected override int ExecutePart2()
         {
-            throw new NotImplementedException();
+            Initialize();
+            var dangerousIngredients = new SortedList<string, string>();
+            while (allergens.Any())
+            {
+                var allergensCopy = new HashSet<string>(allergens);
+                foreach (string allergen in allergensCopy)
+                {
+                    var foodsWithAllergen = foods.Where(f => f.Allergens.Contains(allergen));
+                    IEnumerable<string> intersection = null;
+                    foreach (var food in foodsWithAllergen)
+                    {
+                        if (intersection == null)
+                        {
+                            intersection = food.Ingredients;
+                        }
+                        else
+                        {
+                            intersection = intersection.Intersect(food.Ingredients);
+                        }
+                    }
+                    if (intersection.Count() == 1)
+                    {
+                        string ingredient = intersection.First();
+                        dangerousIngredients.Add(allergen, ingredient);
+
+                        allergens.Remove(allergen);
+                        foreach (var food in foods)
+                        {
+                            food.Allergens.Remove(allergen);
+                            food.Ingredients.Remove(ingredient);
+                        }
+                    }
+                }
+            }
+
+            Logger.LogInformation("Canonical Dangerous Ingredient List: {0}",
+                string.Join(',', dangerousIngredients.Values));
+            return dangerousIngredients.Count;
         }
+
+        private class Food
+        {
+            public List<string> Allergens { get; } = new List<string>();
+            public List<string> Ingredients { get; } = new List<string>();
+        }
+
+        private void Initialize()
+        {
+            foods.Clear();
+            foreach (string foodDefinition in foodDefinitionList)
+            {
+                var match = foodDefinitionRegex.Match(foodDefinition);
+                System.Diagnostics.Debug.Assert(match.Success);
+                var food = new Food();
+                foreach (string ingredient in match.Groups[1].Value.Split(' '))
+                {
+                    food.Ingredients.Add(ingredient);
+                }
+                foreach (string allergen in match.Groups[2].Value.Split(','))
+                {
+                    allergens.Add(allergen.Trim());
+                    food.Allergens.Add(allergen.Trim());
+                }
+                foods.Add(food);
+            }
+        }
+
+        private static readonly Regex foodDefinitionRegex = new Regex(@"^(.*) \(contains ([^\)]+)\)$");
 
         #region Data
 
 #if USESAMPLE
-        private static readonly string[] foodList =
+        private static readonly string[] foodDefinitionList =
         {
             "mxmxvkd kfcds sqjhc nhms (contains dairy, fish)",
             "trh fvjkl sbzzf mxmxvkd (contains dairy)",
@@ -33,7 +137,7 @@ namespace AdventOfCode.Problems.Year2020
             "sqjhc mxmxvkd sbzzf (contains fish)"
         };
 #else
-        private static readonly string[] foodList =
+        private static readonly string[] foodDefinitionList =
         {
             "vsnt bdxflb vljjtr ddtbfc kqvpgdhf dhmrf nbmtklt sqlqzh dknpsz cmzsnxn xkmv lgdfltvn gcmcg vltq zvx bjsmg cbsp lp lpfrt vgkq fmmthkn rpgbn dzcsh zjfsc hkjjt tjczdt lfqd ddjbr xjkx hgxjcl vttzcj dmfrzs xjqv ptlf jpx szj qfcsfg zvbmzc mqvk bmfl cgvzlqx tgrx rnlscmt frvr jdcc hkflr ctmcqjf hfq hlqz dpmdps cgjd ttrmcgd bfrq lpvss slvx xmgprh qdgx fdrsmkkq nrpgkq nplshs njcck mhtzd krfnsd kvttspgs srxphcm dmp snmxl htrm hjhvx fxqzh mzjnpdv lffvh vfzrhg cdmxp qbtdklh rcdjqss rm (contains shellfish)",
             "cqtt nplshs cghn xtxzvx txbg vkdfkzh qfcsfg bd lgdfltvn ktrpqv lgvlk vttzcj mzjnpdv srxphcm ttgvz xkmv ssg zvx lfqd mqvk bfrq fgnjv hsxvvn qbtdklh rcdjqss xmgprh slvx cdmxp dqshc jpx rjddcn htrm lpvss vltq zlmxj hkflr tvbtx sxmph pr tfssqq bgfzbxd jfpmgbdn nbmtklt tvqvrb snmxl ssr cmzsnxn hfq cgthc rnnqzt dmp mrgqf dhjvbzc cthbr dxbtm vgkq (contains peanuts)",
@@ -77,7 +181,8 @@ namespace AdventOfCode.Problems.Year2020
             "blrk lcdgsh nbmtklt xtxzvx ddtbfc kqvpgdhf fdrsmkkq srxphcm snmxl ktrpqv nrpgkq ltvrs dsshnl cglpr cmzsnxn sjzlr kvttspgs rnlscmt qdgx krfnsd dhmrf qfcsfg rnnqzt lgdfltvn rtvzjs bsgnt vsnt nplshs bffb mrqnv vfzrhg bxpjj mnqcl cbznj lnznjm tdkd xjkx cthbr jpx ddjbr bd jnmf fnlq dmp hkflr njkjxs hjhvx sjsjg szj cghn mqvk fxqzh lpvss bfrq rhs ddxjjp bxzbk hndj zvx nnhjj tjczdt rpgbn cqtt (contains shellfish)",
             "vbrr lpvss rm lcnppvn pr xtxzvx srxphcm bfrq fgp njcck snmxl qhknjnv gtpzdxx bzjsxg dxbtm ttrmcgd ccnvx nglclj rhs tvbtx fkctmn ssg ssr njkjxs fnlq cbsp zvx rphm hgxjcl sqlqzh hkjjt dqshc mqvk nbmtklt kvttspgs qfcsfg qpdq rpgbn dpmdps vsnt hsxvvn dhjvbzc hfq bd gkgzf skqfq ctmcqjf rjddcn hcgr clqmstt tzzg mqbhv sxmph zcpmb ddtbfc nplshs xkmv sjsxqxz ddjbr nnh cthbr dmfrzs rnlscmt bxzbk tln rjxkdp pzmmq zjfsc mrgqf (contains peanuts, soy)",
             "hsxvvn hjhvx cgthc pr fkctmn rnlscmt qdgx bdxflb vttzcj rcdjqss mhpxlvb cdmxp lpfrt rznd xv ktrpqv cgplh qpdq hmnf xjkx bfrq ptrgd mhtzd vljjtr rnnqzt lgdfltvn lpvss cqtt vtnmr snmxl ssg sjzlr ctmcqjf vgkq zvbmzc fvlq tgrx hkjjt lnznjm dqxcvg stznpz hkflr zjfsc bmfl bffb bkmrq xjqv zcpmb rtvzjs dsshnl lp vjvdx hndj fmmthkn vzrlps lcdgsh ssr mqvk mfqjps tln sffch mmhghd dpmdps lgvlk bzjsxg ltvrs brfzm dhjvbzc nglclj vsnt srxphcm fkm ddtbfc ddjbr ttrmcgd bd (contains nuts, wheat, soy)",
-            "nglclj kvlj bsgnt xjqv qhknjnv bjtrq zcpmb fkm cthbr lp rqhl rhs dmp bxzbk fgp mmhghd sjzlr vgkq ltvrs xmgprh htrm bd hcgr kqvpgdhf ttrmcgd nnhjj qdgx vkdfkzh zlqn srxphcm hmnf stznpz vltq nnh vfzrhg tzzg knfs xhjkg rnlscmt ccnvx rpgbn ssg bdxflb mqvk zbnb qpdq dsshnl lnznjm bmfl sqlqzh dhjvbzc mdgrf slvx mqbhv nrpgkq xkmv bxpjj cbznj skqfq ddjbr fdrsmkkq tln lffvh zxd ptrgd gkndl qfql bbjfnr cghn bzjsxg bch ctmcqjf fnlq bfrq mnqcl xjkx njcck hgxjcl lpfrt gcmcg jnmf zvx kpns mzjnpdv rznd hkflr vjvdx bffb vljjtr (contains peanuts, wheat)"        }
+            "nglclj kvlj bsgnt xjqv qhknjnv bjtrq zcpmb fkm cthbr lp rqhl rhs dmp bxzbk fgp mmhghd sjzlr vgkq ltvrs xmgprh htrm bd hcgr kqvpgdhf ttrmcgd nnhjj qdgx vkdfkzh zlqn srxphcm hmnf stznpz vltq nnh vfzrhg tzzg knfs xhjkg rnlscmt ccnvx rpgbn ssg bdxflb mqvk zbnb qpdq dsshnl lnznjm bmfl sqlqzh dhjvbzc mdgrf slvx mqbhv nrpgkq xkmv bxpjj cbznj skqfq ddjbr fdrsmkkq tln lffvh zxd ptrgd gkndl qfql bbjfnr cghn bzjsxg bch ctmcqjf fnlq bfrq mnqcl xjkx njcck hgxjcl lpfrt gcmcg jnmf zvx kpns mzjnpdv rznd hkflr vjvdx bffb vljjtr (contains peanuts, wheat)"
+        };
 #endif
 
         #endregion Data

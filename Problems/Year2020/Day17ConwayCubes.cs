@@ -176,6 +176,8 @@ namespace AdventOfCode.Problems.Year2020
             PrintGrid();
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", 
+            Justification = "This is a debugging method that when enabled, does use instance members")]
         private void PrintGrid()
         {
 #if PRINT
