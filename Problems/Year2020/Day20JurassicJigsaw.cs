@@ -11,6 +11,10 @@ namespace AdventOfCode.Problems.Year2020
     class Day20JurassicJigsaw : ProblemBase<long>
     {
         private readonly List<Tile> _tiles = new List<Tile>();
+        private const int TOP = 0;
+        private const int RIGHT = 1;
+        private const int BOTTOM = 2;
+        private const int LEFT = 3;
 
         public Day20JurassicJigsaw(ILogger logger) : base(logger, "Jurassic Jigsaw", 2020, 20) { }
 
@@ -30,7 +34,173 @@ namespace AdventOfCode.Problems.Year2020
 
         protected override long ExecutePart2()
         {
-            throw new NotImplementedException();
+            Initialize();
+            MatchEdges();
+            var image = AssembleImage();
+            long seaMonsterCount = 0;
+            bool[,] waves = null;
+            for (int flip = 0; flip < 2; flip++)
+            {
+                for (int rotate = 0; rotate < 4; rotate++)
+                {
+                    (seaMonsterCount, waves) = CountSeaMonsters(image);
+                    if (seaMonsterCount > 0)
+                    {
+                        break;
+                    }
+                    image = Rotate(image);
+                }
+                if (seaMonsterCount > 0)
+                {
+                    break;
+                }
+                image = FlipY(image);
+            }
+
+            int waveCount = 0;
+            for (int i = 0; i <= waves.GetUpperBound(0); i++)
+            {
+                for (int j = 0; j <= waves.GetUpperBound(1); j++)
+                {
+                    if (waves[i, j])
+                    {
+                        waveCount++;
+                    }
+                }
+            }
+            return waveCount;
+        }
+
+        private bool[,] AssembleImage()
+        {
+            int tileGridSize = (int)Math.Sqrt(_tiles.Count);
+            var image = new bool[tileGridSize * 8, tileGridSize * 8];
+            Tile rowStart = _tiles.First(t => t.IsCorner);
+            while (rowStart.Edges[TOP].Neighbor != null || rowStart.Edges[LEFT].Neighbor != null)
+            {
+                rowStart.Rotate();
+            }
+
+            Tile currTile;
+            for (int yTile = tileGridSize - 1; yTile >= 0; yTile--)
+            {
+                currTile = rowStart;
+                for (int xTile = 0; xTile < tileGridSize; xTile++)
+                {
+                    //Copy this tile's data
+                    for (int y = 1; y < 9; y++)
+                    {
+                        for (int x = 1; x < 9; x++)
+                        {
+                            image[xTile * 8 + x - 1, yTile * 8 + y - 1] = currTile.Pixels[x, y];
+                        }
+                    }
+
+                    //Prepare the next tile to the right
+                    var nextTile = currTile.Edges[RIGHT].Neighbor?.Tile;
+                    if (nextTile != null)
+                    {
+                        while (!ReferenceEquals(currTile.Edges[RIGHT], nextTile.Edges[LEFT].Neighbor))
+                        {
+                            nextTile.Rotate();
+                        }
+                        if (nextTile.Edges[LEFT].IsInverted)
+                        {
+                            nextTile.FlipY();
+                        }
+                    }
+                    currTile = nextTile;
+                }
+
+                //Prepare the next tile down
+                var nextRow = rowStart.Edges[BOTTOM].Neighbor?.Tile;
+                if (nextRow != null)
+                {
+                    while (!ReferenceEquals(rowStart.Edges[BOTTOM], nextRow.Edges[TOP].Neighbor))
+                    {
+                        nextRow.Rotate();
+                    }
+                    if (rowStart.Edges[BOTTOM].IsInverted)
+                    {
+                        nextRow.FlipX();
+                    }
+                    Debug.Assert(nextRow.Edges[LEFT].Neighbor == null);
+                }
+                rowStart = nextRow;
+            }
+
+            return image;
+        }
+
+        private static bool[,] Rotate(bool[,] image)
+        {
+            int n = image.GetUpperBound(0) + 1;
+            var rotated = new bool[n, n];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    rotated[i, j] = image[n - j - 1, i];
+                }
+            }
+            return rotated;
+        }
+
+        private static bool[,] FlipY(bool[,] image)
+        {
+            int n = image.GetUpperBound(0) + 1;
+            var flipped = new bool[n, n];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    flipped[i, j] = image[i, n - j - 1];
+                }
+            }
+            return flipped;
+        }
+
+        private static bool[,] FlipX(bool[,] image)
+        {
+            int n = image.GetUpperBound(0) + 1;
+            var flipped = new bool[n, n];
+            for (int i = 0; i < n; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    flipped[i, j] = image[n - i - 1, j];
+                }
+            }
+            return flipped;
+        }
+
+        private static (int count, bool[,] waves)  CountSeaMonsters(bool[,] image)
+        {
+            int count = 0;
+            for (int y = 0; y < image.GetUpperBound(1) - 2; y++)
+            {
+                for (int x = 0; x < image.GetUpperBound(0) - 18; x++)
+                {
+                    bool found = true;
+                    foreach (var (xOffset, yOffset) in seaMonsterOffsets)
+                    {
+                        if (!image[x + xOffset, y + yOffset])
+                        {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found)
+                    {
+                        count++;
+                        foreach (var (xOffset, yOffset) in seaMonsterOffsets)
+                        {
+                            image[x + xOffset, y + yOffset] = false;
+                        }
+                    }
+                }
+            }
+            return (count, image);
         }
 
         private void MatchEdges()
@@ -66,7 +236,7 @@ namespace AdventOfCode.Problems.Year2020
 
         private class Tile
         {
-            public bool[,] Pixels { get; } = new bool[10, 10];
+            public bool[,] Pixels { get; private set; } = new bool[10, 10];
 
             public Tile(int id)
             {
@@ -79,6 +249,42 @@ namespace AdventOfCode.Problems.Year2020
 
             public bool IsCorner => Edges.Where(e => e.Neighbor == null).Count() == 2;
 
+            public void FlipX()
+            {
+                Pixels = Day20JurassicJigsaw.FlipX(Pixels);
+                Edge temp = Edges[LEFT];
+                Edges[LEFT] = Edges[RIGHT];
+                Edges[RIGHT] = temp;
+
+                foreach (var edge in Edges)
+                {
+                    edge.Reverse();
+                }
+            }
+
+            public void FlipY()
+            {
+                Pixels = Day20JurassicJigsaw.FlipY(Pixels);
+                Edge temp = Edges[TOP];
+                Edges[TOP] = Edges[BOTTOM];
+                Edges[BOTTOM] = temp;
+
+                foreach (var edge in Edges)
+                {
+                    edge.Reverse();
+                }
+            }
+
+            public void Rotate()
+            {
+                Pixels = Day20JurassicJigsaw.Rotate(Pixels);
+                Edge temp = Edges[TOP];
+                Edges[TOP] = Edges[LEFT];
+                Edges[LEFT] = Edges[BOTTOM];
+                Edges[BOTTOM] = Edges[RIGHT];
+                Edges[RIGHT] = temp;
+            }
+
         }
 
         private class Edge
@@ -88,9 +294,16 @@ namespace AdventOfCode.Problems.Year2020
                 Tile = tile;
             }
 
-            public bool[] Pixels { get; } = new bool[10];
+            public bool[] Pixels { get; private set; } = new bool[10];
             public Edge Neighbor { get; set; }
             public Tile Tile { get; }
+
+            public bool IsInverted => Neighbor != null && Enumerable.SequenceEqual(Pixels, Neighbor.Pixels);
+
+            public void Reverse()
+            {
+                Pixels = Pixels.Reverse().ToArray();
+            }
         }
 
         private void Initialize()
@@ -113,7 +326,6 @@ namespace AdventOfCode.Problems.Year2020
                         }
                     }
                 }
-                //PrintTile(tile);
 
                 var top = new Edge(tile);
                 var right = new Edge(tile);
@@ -122,27 +334,26 @@ namespace AdventOfCode.Problems.Year2020
                 for (int i = 0; i < 10; i++)
                 {
                     top.Pixels[i] = tile.Pixels[i, 9];
-                    right.Pixels[i] = tile.Pixels[9, i];
-                    bottom.Pixels[i] = tile.Pixels[0, i];
-                    left.Pixels[i] = tile.Pixels[i, 0];
+                    right.Pixels[i] = tile.Pixels[9, 9 - i];
+                    bottom.Pixels[i] = tile.Pixels[9 - i, 0];
+                    left.Pixels[i] = tile.Pixels[0, i];
                 }
-                tile.Edges[0] = top;
-                tile.Edges[1] = right;
-                tile.Edges[2] = bottom;
-                tile.Edges[3] = left;
+                tile.Edges[TOP] = top;
+                tile.Edges[RIGHT] = right;
+                tile.Edges[BOTTOM] = bottom;
+                tile.Edges[LEFT] = left;
                 _tiles.Add(tile);
             }
         }
 
-        private void PrintTile(Tile tile)
+        private void PrintImage(bool[,] image)
         {
-            Logger.LogInformation($"Tile {tile.Id}");
-            for (int i = 9; i >= 0; i--)
+            for (int i = image.GetUpperBound(1); i >= 0; i--)
             {
                 var row = new StringBuilder();
-                for (int j = 0; j < 10; j++)
+                for (int j = 0; j <= image.GetUpperBound(0); j++)
                 {
-                    row.Append(tile.Pixels[j, i] ? '#' : '.');
+                    row.Append(image[j, i] ? '#' : '.');
                 }
                 Logger.LogInformation(row.ToString());
             }
@@ -150,6 +361,13 @@ namespace AdventOfCode.Problems.Year2020
         }
 
         #region Data
+
+        private static readonly (int xOffset, int yOffset)[] seaMonsterOffsets =
+        {
+            (18, 2),
+            (0, 1), (5, 1), (6, 1), (11, 1), (12, 1), (17, 1), (18, 1), (19, 1),
+            (1, 0), (4, 0), (7, 0), (10, 0), (13, 0), (16, 0)
+        };
 
 #if USESAMPLE
         private static readonly string[] tileData =
