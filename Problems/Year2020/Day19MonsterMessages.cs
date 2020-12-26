@@ -1,4 +1,4 @@
-﻿#define USESAMPLE
+﻿//#define USESAMPLE
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace AdventOfCode.Problems.Year2020
             var rule0 = _rules[0];
             foreach (string message in messages)
             {
-                if (rule0.Evaluate(_rules, message) == message.Length)
+                if (rule0.Evaluate(_rules, message, 0).Contains(message.Length))
                 {
                     validCount++;
                 }
@@ -30,22 +30,16 @@ namespace AdventOfCode.Problems.Year2020
         protected override int ExecutePart2()
         {
             Initialize();
-            var rule8 = new OrRule(8, Logger, _rules[8], new SequenceRule(Logger, 42, 8));
-            _rules[8] = rule8;
-            _rules[11] = new OrRule(11, Logger, _rules[11], new SequenceRule(Logger, 42, 11, 31));
+            _rules[8] = new OrRule(Logger, _rules[8], new SequenceRule(Logger, 42, 8));
+            _rules[11] = new OrRule(Logger, _rules[11], new SequenceRule(Logger, 42, 11, 31));
             int validCount = 0;
             var rule0 = _rules[0];
             foreach (string message in messages)
             {
-                if (rule0.Evaluate(_rules, message) == message.Length)
+                if (rule0.Evaluate(_rules, message, 0).Contains(message.Length))
                 {
                     validCount++;
                 }
-                else if (rule8.HadConflict && rule0.Evaluate(_rules, message) == message.Length)
-                {
-                    validCount++;
-                }
-                rule8.Reset();
             }
             return validCount;
         }
@@ -59,8 +53,7 @@ namespace AdventOfCode.Problems.Year2020
 
             protected ILogger Logger { get; }
 
-
-            public abstract int Evaluate(Dictionary<int, Rule> rules, string message);
+            public abstract IEnumerable<int> Evaluate(Dictionary<int, Rule> rules, string message, int index);
         }
 
         private class ConstantRule : Rule
@@ -72,8 +65,8 @@ namespace AdventOfCode.Problems.Year2020
                 _constant = constant;
             }
 
-            public override int Evaluate(Dictionary<int, Rule> rules, string message) => 
-                message.Any() && message[0] == _constant ? 1 : 0;
+            public override IEnumerable<int> Evaluate(Dictionary<int, Rule> rules, string message, int index) => 
+                index < message.Length && message[index] == _constant ? new int[] { index + 1 } : Array.Empty<int>();
         }
 
         private class SequenceRule : Rule
@@ -88,20 +81,14 @@ namespace AdventOfCode.Problems.Year2020
                 }
             }
 
-            public override int Evaluate(Dictionary<int, Rule> rules, string message)
+            public override IEnumerable<int> Evaluate(Dictionary<int, Rule> rules, string message, int index)
             {
-                int totalConsumed = 0;
-                foreach (int rule in _sequence)
+                IEnumerable<int> indices = new int[] { index };
+                _sequence.ForEach(rule =>
                 {
-                    int consumed = rules[rule].Evaluate(rules, message[totalConsumed..]);
-                    if (consumed == 0)
-                    {
-                        totalConsumed = 0;
-                        break;
-                    }
-                    totalConsumed += consumed;
-                }
-                return totalConsumed;
+                    indices = indices.SelectMany(i => rules[rule].Evaluate(rules, message, i));
+                });
+                return indices;
             }
 
             public void AddRuleId(int ruleId)
@@ -112,42 +99,21 @@ namespace AdventOfCode.Problems.Year2020
 
         private class OrRule : Rule
         {
-            public OrRule(int number, ILogger logger, Rule left = null,
+            public OrRule(ILogger logger, Rule left = null,
                 Rule right = null) : base(logger)
             {
-                Number = number;
                 Left = left;
                 Right = right;
             }
 
-            public bool HadConflict { get; private set; }
-            public int Number { get; }
             public Rule Left { get; set; }
             public Rule Right { get; set; }
 
-            public override int Evaluate(Dictionary<int, Rule> rules, string message)
+            public override IEnumerable<int> Evaluate(Dictionary<int, Rule> rules, string message, int index)
             {
-                int leftConsumed = Left.Evaluate(rules, message);
-                int rightConsumed = Right.Evaluate(rules, message);
-                int consumed = leftConsumed > 0 ? leftConsumed : rightConsumed;
-                if (leftConsumed > 0 && rightConsumed > 0 && leftConsumed != rightConsumed)
-                {
-                    if (HadConflict)
-                    {
-                        consumed = rightConsumed;
-                    }
-                    else
-                    {
-                        Logger.LogWarning($"Ambiguous OR in rule {Number} for message {message}");
-                        HadConflict = true;
-                    }
-                }
-                return consumed;
-            }
-
-            public void Reset()
-            {
-                HadConflict = false;
+                var leftConsumed = Left.Evaluate(rules, message, index);
+                var rightConsumed = Right.Evaluate(rules, message, index);
+                return leftConsumed.Union(rightConsumed).Where(i => i != 0);
             }
         }
 
@@ -168,7 +134,7 @@ namespace AdventOfCode.Problems.Year2020
                 }
                 else if (parts[1].Contains('|'))
                 {
-                    var orRule = new OrRule(num, Logger);
+                    var orRule = new OrRule(Logger);
                     parts = parts[1].Split('|');
                     orRule.Left = ParseSequence(parts[0]);
                     orRule.Right = ParseSequence(parts[1]);
