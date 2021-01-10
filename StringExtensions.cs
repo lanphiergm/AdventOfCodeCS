@@ -1,4 +1,10 @@
-﻿using System.Text.RegularExpressions;
+﻿// ############################################################################
+// # Galen Lanphier                                                           #
+// # https://github.com/lanphiergm/AdventOfCodeCS                             #
+// # MIT License. See LICENSE file                                            #
+// ############################################################################
+
+using System.Text.RegularExpressions;
 
 namespace AdventOfCode
 {
